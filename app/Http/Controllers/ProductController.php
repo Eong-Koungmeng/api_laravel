@@ -2,51 +2,103 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
 {
+    /**
+     * Display a listing of the products.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index()
     {
-        return Product::all();
+        $products = Product::all();
+        return response()->json($products);
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required',
-            'description' => 'nullable',
-            'price' => 'required|numeric',
-        ]);
-
-        return Product::create($request->all());
-    }
-
+    /**
+     * Display the specified product.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function show($id)
     {
-        return Product::findOrFail($id);
+        $product = Product::find($id);
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+        return response()->json($product);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Store a newly created product in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required',
             'description' => 'nullable',
-            'price' => 'required|numeric',
+            'price' => 'required|numeric|min:0',
         ]);
 
-        $product = Product::findOrFail($id);
-        $product->update($request->all());
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
 
-        return $product;
+        $product = Product::create($request->all());
+        return response()->json($product, 201);
     }
 
+    /**
+     * Update the specified product in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        $product = Product::find($id);
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required',
+            'description' => 'nullable',
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        $product->update($request->all());
+        return response()->json($product);
+    }
+
+    /**
+     * Remove the specified product from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function destroy($id)
     {
-        $product = Product::findOrFail($id);
-        $product->delete();
+        $product = Product::find($id);
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
 
-        return response()->json(['message' => 'Product deleted successfully']);
+        $product->delete();
+        return response()->json(['message' => 'Product deleted']);
     }
 }
